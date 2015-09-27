@@ -1,18 +1,19 @@
 grammar CMM;
-import CommonLexerRules;
-
-prog : stat+ 
-	|functionDeclr
+prog : 
+	(stat NEWLINE?)+ 
 	;
 
 stat :
 	singleExpr
 	| multiExpr
+	| functionDeclr
+	| anotationExpr
 	;
 singleExpr :
 	assignStat
 	| declrStat
 	| ioStat
+	| 'return' expr? ';'
 	;
 ioStat :
 	write
@@ -25,29 +26,29 @@ assignStat :
 	ID '=' expr ';'
 	;
 write :
-	WRITE '(' ID ',' expr ')' ';'
+	'write' '(' ID ')' ';'
 	;
 read :
-	READ '(' ID ')' ';'
+	'read' '(' ')'
 	;
 	
-	
+
 multiExpr :
 	whileExpr
 	| ifExpr
 	;
 ifExpr :
-	IF conditionExpr block (ELSE IF conditionExpr block)* (ELSE block)?
+	'if' expr block ('else' 'if' expr block)* ('else' block)?
 	;
 whileExpr :
 	whileDoExpr
 	|doWhileExpr
 	;
 whileDoExpr :
-	WHILE condtionExpr block
+	'while' expr block
 	;
 doWhileExpr :
-	DO block WHILE conditionExpr
+	'do' block 'while' expr
 	;
 	
 	
@@ -60,13 +61,55 @@ formalParameters :
 formalParameter :
 	type ID
 	;
-
+anotationExpr :
+	'/*' .*? (NEWLINE '*' .*?)* '*/'
+	;
 block : 
-	'{' stat* '}'
+	'{' (stat NEWLINE?)* '}'
+	| singleExpr
 	;
 expr :
 	ID '(' exprList? ')'
-	|
-type :
-	INT | FLOAT | DOUBLE 
+	| ID '[' expr ']'
+	| '-' expr
+	| '!' expr
+	| expr '++'
+	| expr '--'
+	| expr '+=' expr
+	| expr '-=' expr
+	| expr '*=' expr
+	| expr '/=' expr
+	| expr ('*' | '/') expr
+	| expr ('+' | '-') expr
+	| expr ('>'|'<'|'=='|'!=') expr
+	| ID 
+	| read
+	| NUMBER
+	| '(' expr ')'
 	;
+exprList :
+	expr (',' expr)*
+	;
+type :
+	'int'
+	|'float' 
+	|'double' 
+	|'void'
+	;
+	
+ID : [a-zA-Z_] ([a-zA-Z_] | [0-9])*;
+NUMBER :
+	INT '.' INT EXP?
+	|INT EXP
+	|INT
+	;
+fragment INT : '0' | [1-9] [0-9]* ;
+fragment EXP : [Ee][+|-]? INT ;
+NEWLINE : '\r'? '\n' ;
+DIGIT : [0-9];
+ALPHA : [a-zA-Z];
+STRING : '"' (ESC | ~["\\])* '"' ;
+fragment ESC : '\\' (["\\/bfnrt] | UNICODE );
+fragment UNICODE : 'u' HEX HEX HEX HEX ;
+fragment HEX : [0-9A-Za-z] ;
+WS : [\t\n\r]+ ->skip ;
